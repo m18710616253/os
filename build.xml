@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+
+<project name="oos-server" default="compile" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+
+    <property name="src" location="src" />
+    <property name="build" location="build-ant" />
+    <property name="build.classes" location="${build}/classes" />
+    <property name="lib" location="lib" />
+
+    <path id="classpath">
+        <pathelement location="${build.classes}" />
+        <fileset dir="${lib}">
+            <include name="*.jar" />
+        </fileset>
+    </path>
+
+    <target name="clearOOSJar">
+        <fileset id="projectJar" dir=".">
+            <include name="*.jar"/>
+            <include name="*.zip"/>
+        </fileset>
+        <fileset id="libOOSJar" dir="${lib}">
+            <include name="oos*.jar"/>
+            <include name="ostor*.jar"/>
+            <exclude name="oos-sdk*.jar"/>
+        </fileset>
+        <delete failonerror="false">
+            <fileset refid="projectJar"/>
+        </delete>
+        <delete failonerror="false">
+            <fileset refid="libOOSJar"/>
+        </delete>
+    </target>
+
+    <target name="resolve" depends="clearOOSJar" description="Retrieve dependencies with ivy">
+        <ivy:retrieve />
+        <delete file="${lib}/javaee-api-5.0-2.jar"/>
+        <delete file="${lib}/xercesImpl-2.6.1.jar"/>
+        <delete file="${lib}/servlet-api-2.4.jar"/>
+        <delete file="${lib}/servlet-api-2.5-20081211.jar"/>
+    </target>
+
+    <target name="compile" depends="clean,resolve" description="compile">
+        <mkdir dir="${build.classes}" />
+        <javac srcdir="${src}" destdir="${build.classes}" includeantruntime="false" debug="on" encoding="UTF-8" >
+            <classpath refid="classpath" />
+        </javac>
+    </target>
+
+    <target name="jarLocal" depends="compile" description="create jar without version">
+        <jar destfile="${ant.project.name}.jar" basedir="${build.classes}" update="true"/>
+        <zip destfile="${ant.project.name}-src.zip" basedir="${src}" update="true" excludes="**/.svn" encoding="UTF-8"></zip>
+    </target>
+
+    <target name="checkVersion" description="check svnversion">
+        <exec executable="svnversion" outputproperty="svnversion" />
+        <condition property="legal-version">
+            <matches pattern="^[0-9]+$" string="${svnversion}"/>
+        </condition>
+        <fail message="Please commit all changes and run svn update!" unless="legal-version" />
+    </target>
+
+    <target name="jar" depends="compile,checkVersion" description="jar class file">
+        <exec executable="svn" outputproperty="svninfo">
+            <arg line="info" />
+        </exec>
+        <script language="javascript" manager="javax">
+            <![CDATA[
+            var re = /^Last Changed Rev: ([0-9]+)$/gm
+            var array = re.exec(svninfo);
+            project.setProperty("lastRev", array[1]);
+            ]]>
+        </script>
+        <echo message="Last Changed Rev: ${lastRev}"/>
+        <jar destfile="${ant.project.name}-${lastRev}.jar" basedir="${build.classes}" update="true"/>
+        <copy tofile="${build}/${ant.project.name}.jar" file="${ant.project.name}-${lastRev}.jar" overwrite="true" />
+        <zip destfile="${ant.project.name}-src.zip" basedir="${src}" update="true" excludes="**/.svn" encoding="UTF-8"></zip>
+    </target>
+
+    <target name="publish" depends="jar">
+        <ivy:deliver deliverpattern="${build}/ivy.xml" pubrevision="${lastRev}" status="release"/>
+        <ivy:makepom ivyfile="${build}/ivy.xml" pomfile="${build}/${ivy.module}.pom"/>
+        <ivy:resolve/>
+        <ivy:publish resolver="nexus-releases"
+                     pubrevision="${lastRev}"
+                     overwrite="true" 
+                     publishivy="false" >
+            <artifacts pattern="${build}/[artifact].[ext]" />
+        </ivy:publish>
+    </target>
+
+    <target name="clean" depends="clearOOSJar" description="Clean the build">
+        <delete dir="${build}" />
+        <delete dir="${lib}"/>
+    </target>
+
+</project>

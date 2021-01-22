@@ -1,0 +1,17 @@
+<ivysettings>
+    <settings defaultResolver="chained"/>
+    <credentials host="172.16.0.243" realm="Sonatype Nexus Repository Manager" username="deployment" passwd="deployment123" />
+    <property name="nexus-thirdparty" value="http://172.16.0.243:8081/nexus/content/repositories/thirdparty/"/>
+    <property name="nexus-releases" value="http://172.16.0.243:8081/nexus/content/repositories/releases6/" />
+    <property name="maven2" value="https://repo1.maven.org/maven2/" />
+    <resolvers>
+        <ibiblio name="nexus-thirdparty" m2compatible="true" root="${nexus-thirdparty}" useMavenMetadata="false"/>
+        <ibiblio name="nexus-releases" m2compatible="true" root="${nexus-releases}" useMavenMetadata="false"/>
+        <ibiblio name="maven2" m2compatible="true" root ="${maven2}" useMavenMetadata="false" />
+        <chain name="chained" returnFirst="true">
+            <resolver ref="nexus-thirdparty" />
+            <resolver ref="nexus-releases" />
+            <resolver ref="maven2" />
+        </chain>
+    </resolvers>
+</ivysettings>

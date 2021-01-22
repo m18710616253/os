@@ -1,0 +1,28 @@
+日志处理的逻辑
+
+1、FetchLogTool
+fetchlog将oos生成的日志放在${path}/accesslogs/GMT20140107/103300/${logname}这样的目录下
+其中${path}配置指定。${logname}由oos在代码中指定
+
+2、OOSLogTool
+设f2={path}/accesslogs/GMT20140107/103300.对于这样的目录oosLogTool
+(1)在f2目录下生成临时文件夹,{path}/accesslogs/GMT20140107/103300/${random_8_byte_str}_tmp
+(2)由f2下的${logname}，生成临时文件夹的object. 
+objecting名字为{owner id}_{owner name}_{target bucket}_{encode  {targetPrefix}yyyy-mm-dd-HH-MM-SS }
+其中yyyy-mm-dd-HH-MM-SS是f2的时间戳
+(3)将临时文件夹的下object上传到oos,object的名字是{targetPrefix}yyyy-mm-dd-HH-MM-SS
+**note** 多次处理同一个目录时，为了防止上传到oos的object被覆盖，采取将此次处理的object的hostname 后MD5作为后缀
+(4)删除临时文件夹
+(5)将f2下的${logname}名字中.fetched换成.processed
+
+
+3、ArchiveTool
+每隔7天将7天内都processed的log文件归档
+ 
+
+日志处理部分：配置文件/oos/config/global/processLogConfig 
+FetchLogTool抓取日志：每5分钟间隔，利用jsch这个库从其他机器抓取access日志。抓取后的日志以.fetched结尾。因为设计时，考虑了抓取多个oos进程accesslog的情况，当前的配置是遍历/var/oos （OOSConfig.getCwdRoot()）下的目录，如果某个目录存在accesslog (OOSConfig.getLogdir())目录， 则抓取之, 将收集到的accesslog放在LogConfig.getDstLocation()的accesslogs目录下。
+OOSLogTool处理日志：每5分钟间隔，在日志处理进程所在的机器上对5分钟抓取后的日志进行处理，然后传到OOS的bucket上面。该程序要处理的日志放在LogConfig.getDstLocation ()的accesslogs目录下。当用户打开bucket的日志功能的时候，一条请求对应在accesslog中的内容分为两行。第一行是ownername ownerId targetBucket prefix.第二行是请求的相关信息。程序的处理过程是根据第一行信息将accesslog按用户的bucket划分成文件，然后将该文件上传到OOS。在处理每个请求的时候同时统计了500个数以及SLA的请求。处理的时候采用多线程处理。
+ArchiveTool压缩日志：每天进行压缩，将该天7天之前的access日志进行压缩。并且删除之前未压缩的accesslog。
+
+ 

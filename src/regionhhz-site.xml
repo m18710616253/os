@@ -1,0 +1,41 @@
+<configuration>
+	<property>
+		<name>fs.defaultFS</name>
+        <value>hdfs://Zw</value>
+    </property>
+    
+    <property>
+		<name>dfs.nameservices</name>
+		<value>Zw</value>
+	</property>
+	<property>
+		<name>dfs.ha.namenodes.Zw</name>
+		<value>nn</value>
+	</property>
+	<property>
+		<name>dfs.namenode.rpc-address.oos-hbase.nn</name>
+		<value>Zw:9000</value>
+		<description>change it according to your environment</description>
+	</property>
+	
+	<property>
+		<name>dfs.client.failover.proxy.provider.oos-hbase</name>
+		<value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider
+		</value>
+	</property>
+	
+	<property>
+		<name>hbase.zookeeper.quorum</name>
+		<value>Zw:2181</value>
+		<description>change it according to your environment</description>
+	</property>
+	<property>
+		<name>zookeeper.session-timeout.ms</name>
+		<value>180000</value>
+	</property>
+	
+	<property>
+		<name>hbase.client.ipc.pool.size</name>
+		<value>100</value>
+	</property>
+</configuration>
